@@ -1,0 +1,12 @@
+[tasks.clean]
+description = "Cleans the build dir. Does not clean up gradle."
+run = "rm -rf ./build"
+
+[tasks.build]
+description = "Builds the jar file."
+run = "./gradlew jar"
+
+[tasks.install]
+description = "Build the plugin jar and install it into the plugin folder."
+depends = ["clean", "build"]
+run = "ln -f -s $PWD/build/libs/openrocket-imu-data-generator-*.jar ~/.openrocket/Plugins/"

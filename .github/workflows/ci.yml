@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*', '[0-9]*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout openrocket-imu-data-generator
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # This plugin's build.gradle compiles against a locally-published snapshot
+      # of OpenRocket core's `unstable` branch (see README.md#building) - it isn't
+      # available on Maven Central yet. Resolve that branch's current commit so we
+      # can cache the published artifacts and skip rebuilding OpenRocket core
+      # (a large, slow build) when it hasn't changed.
+      - name: Resolve OpenRocket unstable commit
+        id: openrocket-ref
+        run: |
+          sha=$(git ls-remote https://github.com/openrocket/openrocket.git refs/heads/unstable | cut -f1)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Cache OpenRocket core Maven-local artifacts
+        id: cache-openrocket-core
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/info/openrocket
+          key: openrocket-core-${{ steps.openrocket-ref.outputs.sha }}
+
+      - name: Checkout OpenRocket (unstable)
+        if: steps.cache-openrocket-core.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: openrocket/openrocket
+          ref: ${{ steps.openrocket-ref.outputs.sha }}
+          path: openrocket
+
+      - name: Publish OpenRocket core to Maven local
+        if: steps.cache-openrocket-core.outputs.cache-hit != 'true'
+        working-directory: openrocket
+        run: ./gradlew :core:publishToMavenLocal
+
+      - name: Build jar
+        run: ./gradlew jar
+
+      - name: Upload jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openrocket-imu-data-generator-jar
+          path: build/libs/*.jar
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check tag matches build.gradle version
+        id: check
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          tag="${tag#v}"
+          gradle_version=$(grep -Po "(?<=^version = ')[^']+" build.gradle)
+          if [ "$tag" = "$gradle_version" ]; then
+            echo "match=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "match=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Tag '$GITHUB_REF' does not match build.gradle version '$gradle_version' - skipping release."
+          fi
+
+      - name: Download jar artifact
+        if: steps.check.outputs.match == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: openrocket-imu-data-generator-jar
+          path: build/libs
+
+      - name: Create GitHub release
+        if: steps.check.outputs.match == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF#refs/tags/}" build/libs/*.jar \
+            --title "${GITHUB_REF#refs/tags/}" \
+            --generate-notes

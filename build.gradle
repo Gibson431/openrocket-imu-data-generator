@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+}
+
+group = 'io.github.gibson431'
+version = '0.1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    // Provided by OpenRocket itself at runtime - must not be bundled into
+    // the plugin jar, or it will shadow/conflict with the app's own classes.
+    //
+    // Pinned to a locally-published snapshot (`./gradlew :core:publishToMavenLocal`
+    // from an OpenRocket checkout) because this plugin uses CoordinateIF and the
+    // TYPE_ACCELERATION_BODY* flight data types, which are not yet in a Maven
+    // Central release (as of 24.12). Once a release ships with those APIs, switch
+    // this to that released version and drop mavenLocal() above.
+    compileOnly 'info.openrocket:core:26.xx-SNAPSHOT'
+
+    // core declares its own dependencies as `implementation`, so they aren't
+    // exposed transitively here - declare what we use directly.
+    compileOnly 'org.slf4j:slf4j-api:2.0.17'
+}
+
+jar {
+    archiveBaseName = 'openrocket-imu-data-generator'
+}
