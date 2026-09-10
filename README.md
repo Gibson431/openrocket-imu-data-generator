@@ -1,4 +1,7 @@
-# openrocket-imu-data-generator
+# OpenRocket IMU Data Generation
+
+**Warning**: This uses the newer plugin API. You will need to build OpenRocket from source to use this.
+See Compatibility section for more information.
 
 An [OpenRocket](https://github.com/openrocket/openrocket) simulation extension
 that logs mock IMU sensor data to CSV, for use as synthetic input when testing
@@ -43,7 +46,7 @@ Restart OpenRocket, then in a simulation's edit dialog add the extension under
 
 ### Compatibility
 
-This plugin requires you to build OpenRocket from unstable later that 9 September 2026 as it uses some APIs
+This plugin requires you to build OpenRocket from unstable later than 9 September 2026 as it uses some APIs
 that have not been stabilised yet.
 
 ## Building
