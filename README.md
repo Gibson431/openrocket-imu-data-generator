@@ -49,7 +49,10 @@ Restart OpenRocket, then in a simulation's edit dialog add the extension under
 This plugin requires you to build OpenRocket from unstable later than 9 September 2026 as it uses some APIs
 that have not been stabilised yet.
 
-## Building
+## Building This Plugin
+
+You should be able to download the `.jar` file from the Releases section on Github.
+This section is for if you want to build this plugin from source instead of using that.
 
 This plugin uses `CoordinateIF` and the `TYPE_ACCELERATION_BODY*` flight data types, which
 are not yet in a released version of OpenRocket core on Maven Central (as of `24.12`) - they
